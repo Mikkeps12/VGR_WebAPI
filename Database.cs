@@ -295,7 +295,7 @@ namespace VGR_WebAPI
 
         public IFormFile? Beslut_Andringansokan { get; set; }
 
-        public IFormFile? Komplettering_Fil { get; set; }
+        public List<IFormFile>? Komplettering_Fil { get; set; }
 
         
         public List<IFormFile>? Variabellista { get; set; }

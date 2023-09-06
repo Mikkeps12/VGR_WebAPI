@@ -49,9 +49,11 @@ namespace VGR_WebAPI
         public void insert(List_of_Data data)
         {
             insert_buyer(data);
+            insert_status(data);
             insert_project(data);
             insert_files(data);
             insert_datacollection(data);
+            
             //get_mailadress(data);
 
         }
@@ -95,6 +97,19 @@ namespace VGR_WebAPI
             }
             else
                 data.ID = 1;
+        }
+
+        private void insert_status(List_of_Data data)
+        {
+            Database database = new Database();
+            
+            Status status = new Status();
+
+            status.Bestallare_id = data.ID;
+            status.Status_ = "Inkommande";
+            database.status.Add(status);
+            database.SaveChanges();
+            
         }
 
         private void insert_project(List_of_Data data)
@@ -216,18 +231,21 @@ namespace VGR_WebAPI
 
             if (data.Komplettering_Fil != null)
             {
-                MemoryStream stream = new MemoryStream();
-                data.Komplettering_Fil.CopyTo(stream);
-                string filenameWithExtension = Path.GetExtension(data.Komplettering_Fil.FileName);
+                foreach (var files in data.Komplettering_Fil)
+                {
+                    MemoryStream stream = new MemoryStream();
+                    files.CopyTo(stream);
+                    string filenameWithExtension = Path.GetExtension(files.FileName);
 
 
-                string filename = list_of_names[14] + filenameWithExtension;
+                    string filename = list_of_names[14] + filenameWithExtension;
 
-                long Id = data.ID;
+                    long Id = data.ID;
 
-                get_file(stream, filename, Id);
-                stream.Close();
-                stream.Flush();
+                    get_file(stream, filename, Id);
+                    stream.Close();
+                    stream.Flush();
+                }
             }
 
             //if (data.k != null)
@@ -300,7 +318,24 @@ namespace VGR_WebAPI
                     stream.Flush();
                 }
 
+            if(data.Variabellista!=null)
+            {
+                foreach (var v in data.Variabellista)
+                {
+                    MemoryStream stream = new MemoryStream();
+                    v.CopyTo(stream);
+                    string filename = v.FileName;
+                    long Id = data.ID;
+
+                    get_file(stream, filename, Id);
+                    stream.Close();
+                    stream.Flush();
+                }
+            }
+
         }
+
+        
 
         private void get_mailadress(List_of_Data data) => Mail.mail(data);
 
@@ -355,9 +390,11 @@ namespace VGR_WebAPI
                 System.IO.File.AppendAllText("D:\\Check.txt", "Test2");
                 var request = from request_ in database.bestallning_Av_Data
                               from beslut_ in database.beslut
+                              from status_ in database.status
                               where request_.ID == beslut_.Bestallare_id
                               select new
                               {
+                                  Ststus = status_.Status_,
                                   Beslut = beslut_.Beslut_,
                                   request_.ID,
                                   request_.Bestallare_Namn,
