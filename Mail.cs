@@ -6,7 +6,7 @@ namespace VGR_WebAPI
 {
     public class Mail
     {
-        public static MailAddress mailAddress = null;
+        public static MailAddress? mailAddress;
 
         
 
@@ -38,7 +38,9 @@ namespace VGR_WebAPI
             mailMessage.Subject = "Ansökan";
             mailMessage.From = new MailAddress("mikael.jonsson4@vgregion.se");
 
+#pragma warning disable CS8604 // Possible null reference argument.
             mailMessage.To.Add(data.Bestallare_Epostadress);
+#pragma warning restore CS8604 // Possible null reference argument.
 
             smtp.Send(mailMessage);
             smtp.Dispose();

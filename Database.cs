@@ -10,8 +10,10 @@ namespace VGR_WebAPI
 {
     public class Database : DbContext
     {
-      
+
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public Database() : base(System.Configuration.ConfigurationManager.ConnectionStrings["VGRT"].ConnectionString)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             
         }
@@ -54,33 +56,47 @@ namespace VGR_WebAPI
 
     public class Datauttag
     {
+        public Datauttag()
+        {
+            
+        }
         [Key]
         public long ID { get; set; }
-        public string data { get; set; }
+        public string? data { get; set; }
         public long User_ID { get; set; }
     }
 
     public class Omraden
     {
+        public Omraden()
+        {
+            
+        }
+
         [Key]
         public long ID { get; set; }
-        public string Omrade { get; set; }
+        public string? Omrade { get; set; }
         public long Place_ID { get; set; }
     }
 
     public class Register
     {
+        public Register() { }
+        
         [Key]
         public long ID { get; set; }
-        public string Datauttagsnamn { get; set; }
+        public string? Datauttagsnamn { get; set; }
         public long Place_ID { get; set; }
+        public string? Fullstandigt_Namn { get; set; }
     }
 
     public class Filer
     {
+        public Filer() { }
+        
         [Key]
         public long ID { get; set; }
-        public string FileName{ get; set; }
+        public string? FileName{ get; set; }
         public byte[]? FormFile { get; set; }
 
         public long User_ID { get; set; }
@@ -96,7 +112,7 @@ namespace VGR_WebAPI
         public long ID { get; set; } = 0;
         public int Logg_Personnr { get; set; }
         public DateTime Logg_nowdate { get; set; }
-        public string Logg_Page { get; set; }
+        public string? Logg_Page { get; set; }
         public long Logg_Bestallar_id { get; set; }
     }
 
@@ -104,8 +120,8 @@ namespace VGR_WebAPI
     {
         [Key]
         public long ID { get; set; }
-        public string Bestallare_Epostadress { get; set; }
-        public string Diarie { get; set; }
+        public string? Bestallare_Epostadress { get; set; }
+        public string? Diarie { get; set; }
         public DateTime Date { get; set; }
         public DateTime Insertdatetime { get; set; }
         public DateTime Updatedatetime { get; set; }
@@ -175,7 +191,7 @@ namespace VGR_WebAPI
     {
         [Key]
         public long ID { get; set; }
-        public string Status_ { get; set; }
+        public string? Status_ { get; set; }
 
         public long Bestallare_id { get; set; }
     }
@@ -184,7 +200,7 @@ namespace VGR_WebAPI
     {
         [Key]
         public long ID { get; set; }
-        public string DiarieStatus { get; set; }
+        public string? DiarieStatus { get; set; }
 
         public long Bestallare_id { get; set; }
     }
@@ -193,7 +209,7 @@ namespace VGR_WebAPI
     {
         [Key]
         public long ID { get; set; }
-        public string Beslut_ { get; set; }
+        public string? Beslut_ { get; set; }
 
         public long Bestallare_id { get; set; }
     }
@@ -202,7 +218,7 @@ namespace VGR_WebAPI
     {
         [Key]
         public long ID { get; set; }
-        public string Avgiftsalternativ { get; set; }
+        public string? Avgiftsalternativ { get; set; }
 
         public long Bestallare_id { get; set; }
 
@@ -212,7 +228,7 @@ namespace VGR_WebAPI
     {
         [Key]
         public long ID { get; set; }
-        public string Uttagsformat_ { get; set; }
+        public string? Uttagsformat_ { get; set; }
 
         public long Bestallare_id { get; set; }
 
@@ -222,16 +238,16 @@ namespace VGR_WebAPI
     {
         [Key]
         public long ID { get; set; }
-        public string Sprak_ { get; set; }
-        public string options { get; set; }
+        public string? Sprak_ { get; set; }
+        public string? options { get; set; }
     }
 
     public class Inloggningsuppgifter
     {
         [Key]
         public long ID { get; set; }
-        public string Epostadress { get; set; }
-        public string Losenord { get; set; }
+        public string? Epostadress { get; set; }
+        public string? Losenord { get; set; }
         public DateTime Insertdatetime { get; set; }
         public DateTime Updatedatetime { get; set; }
 
@@ -319,7 +335,10 @@ namespace VGR_WebAPI
 
     public class Arra
     {
-        
+        public Arra()
+        {
+            
+        }
 
         public DateTime FromDate { get; set; }
         public DateTime ToDate { get; set; }
@@ -354,8 +373,8 @@ namespace VGR_WebAPI
 
     public class RenameFileData
     {
-        public string newFilename { get; set; }
-        public string oldFilename { get; set; }
+        public string? newFilename { get; set; }
+        public string? oldFilename { get; set; }
     }
 
     public class Data

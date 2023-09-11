@@ -1,11 +1,5 @@
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections;
-using System.IO;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
-using Microsoft.Extensions.Logging;
 
 namespace VGR_WebAPI.Controllers
 {
@@ -14,11 +8,6 @@ namespace VGR_WebAPI.Controllers
     [Route("[controller]/")]
     public class VGRController : ControllerBase
     {
-        //private static readonly string[] Summaries = new[]
-        //{
-        //"Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        //};
-
         private readonly ILogger<VGRController> _logger;
         private readonly DTO _dto;
 
@@ -28,34 +17,6 @@ namespace VGR_WebAPI.Controllers
             _dto = dto;
 
         }
-
-
-        //[HttpGet(Name = "GetWeatherForecast")]
-        //public IEnumerable<WeatherForecast> Get()
-        //{
-        //    return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-        //    {
-        //        Date = DateTime.Now.AddDays(index),
-        //        TemperatureC = Random.Shared.Next(-20, 55),
-        //        Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-        //    })
-        //    .ToArray();
-        //}
-        //[HttpGet("GetWeather")]
-        //public string Get1()
-        //{
-        //    string json;
-        //    //DTO dTO = new DTO(out json);
-
-        //    return "";
-        //}
-
-        //[HttpPost("PostWeather")]
-        //public  ActionResult Post([FromForm] Filer file)
-        //{
-        //    //dynamic json = JsonSerializer.Deserialize<string>(json: coll.ToString());
-
-        //    return Ok();
 
         [HttpGet("GetData")]
         public ActionResult Index()
@@ -116,7 +77,7 @@ namespace VGR_WebAPI.Controllers
         [HttpGet("GetFile")]
         public ActionResult GetDataCollection([FromQuery] string filename, [FromQuery] string user_id)
         {
-            
+
             Stream stream;
             stream = _dto.get_file(filename, Convert.ToInt16(user_id));
 
@@ -150,9 +111,6 @@ namespace VGR_WebAPI.Controllers
             return Ok(json);
         }
 
-
-
-
         [HttpPost("PostRequest")]
         [Produces("application/json")]
         [Consumes("multipart/form-data")]
@@ -174,13 +132,17 @@ namespace VGR_WebAPI.Controllers
         }
 
         [HttpPut("Renamefile/{user_id}")]
-        public ActionResult Put(int user_id, [FromBody] RenameFileData data) 
+        public ActionResult Put(int user_id, [FromBody] RenameFileData data)
         {
-            string oldFileName = data.oldFilename;
-            string newFileName = data.newFilename;
+            if (data.oldFilename != null && data.newFilename != null)
+            {
+                string oldFileName = data.oldFilename;
+                string newFileName = data.newFilename;
 
-            _dto.rename_file(data.oldFilename, data.newFilename, user_id);
-            
+                _dto.rename_file(data.oldFilename, data.newFilename, user_id);
+
+
+            }
             return Ok();
         }
 

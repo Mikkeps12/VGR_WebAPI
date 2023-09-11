@@ -11,39 +11,11 @@ namespace VGR_WebAPI
     {
         
         public List_of_Data? list = new List_of_Data();
-        readonly IDTO dTO;
+        
         public List<string> list_of_names = new List<string>();
         public DTO()
         {
             
-            //dTO= new DTO();
-            //string data = "";
-
-            //Stream stream_ = new MemoryStream();
-
-            //    using (var d = new Database())
-            //    {
-            //        var f = from av in d.avslutad
-            //                select av;
-
-            //        foreach (var dd in f)
-            //        {
-
-            //            Console.WriteLine(dd.AvslutadStatus.ToString());
-            //            data += dd.AvslutadStatus;
-            //        }
-
-            //    string json = JsonSerializer.Serialize(data);
-            //    json_ = json;
-
-            //        //byte[] b = Encoding.ASCII.GetBytes(data);
-            //    //stream_.Write(b);
-
-            //    //stream = stream_;
-
-
-            //    }
-
         }
 
         public void insert(List_of_Data data)
@@ -79,14 +51,14 @@ namespace VGR_WebAPI
                 Huvudans_Organisation = data.Huvudans_Organisation,
                 Insertdatetime = DateTime.Now,
                 Updatedatetime = DateTime.Now,
-
-
             };
 
             //get_mailadress(data);
 
             Database database = new Database();
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
             database.bestallning_Av_Data.Add(bestallning_Av_Data);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
             database.SaveChanges();
 
             var select_user_id = (from user in database.bestallning_Av_Data
@@ -107,9 +79,10 @@ namespace VGR_WebAPI
 
             status.Bestallare_id = data.ID;
             status.Status_ = "Inkommande";
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
             database.status.Add(status);
-            database.SaveChanges();
-            
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+            database.SaveChanges();   
         }
 
         private void insert_project(List_of_Data data)
@@ -118,17 +91,6 @@ namespace VGR_WebAPI
 
 
             forskningsprojekt.Projektbeskrivning = data.Projektbeskrivning;
-
-            //if (data.Projektbeskrivning_fil != null)
-            //{
-            //    forskningsprojekt.Projektbeskrivning_Fil = get_file(data);
-            //}
-
-            //Diarienummer = data
-            //Andringansökan_Diarienummer = data
-            //Andringansökan_Fil = data
-            //Beslut_Andringansokan = data
-            
             forskningsprojekt.Projekttitel = data.Projekttitel;
             forskningsprojekt.Lakemedelstudier = data.Lakemedelstudier;
             forskningsprojekt.Samarbete_Med_Industrin = data.Samarbete_Med_Industrin;
@@ -141,7 +103,9 @@ namespace VGR_WebAPI
             //}
 
             Database database = new Database();
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
             database.forskningsprojekts.Add(forskningsprojekt);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
             database.SaveChanges();
 
 
@@ -150,22 +114,19 @@ namespace VGR_WebAPI
 
         private void insert_datacollection(List_of_Data data)
         {
+#pragma warning disable CS8604 // Possible null reference argument.
             foreach(var d in data.Array.ToList())
             {
                 Datauttag datauttag =new Datauttag();
                 Database database= new Database();
-                //if (d.V != null)
-                //{
-                //    IFormFile variablelist = d.V;
-
-                //    //d.V.Remove(0);
-                //}
+                
                 string json =JsonSerializer.Serialize(d);
                 datauttag.data = json;
                 datauttag.User_ID = data.ID;
                 database.datauttag.Add(datauttag);
                 database.SaveChanges();
             }
+#pragma warning restore CS8604 // Possible null reference argument.
 
         }
 
@@ -248,22 +209,6 @@ namespace VGR_WebAPI
                 }
             }
 
-            //if (data.k != null)
-            //{
-            //    MemoryStream stream = new MemoryStream();
-            //    data.Komplettering_Fil.CopyTo(stream);
-            //    string filenameWithExtension = Path.GetExtension(data.Komplettering_Fil.FileName);
-
-
-            //    string filename = list_of_names[14] + filenameWithExtension;
-
-            //    long Id = data.ID;
-
-            //    get_file(stream, filename, Id);
-            //    stream.Close();
-            //    stream.Flush();
-            //}
-
             if (data.Andringansokan_Fil != null)
             {
                 MemoryStream stream = new MemoryStream();
@@ -332,10 +277,7 @@ namespace VGR_WebAPI
                     stream.Flush();
                 }
             }
-
         }
-
-        
 
         private void get_mailadress(List_of_Data data) => Mail.mail(data);
 
@@ -344,7 +286,9 @@ namespace VGR_WebAPI
         {
             MemoryStream stream = new MemoryStream();
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
             data.Projektbeskrivning_fil.CopyTo(stream);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
             byte[] imageData;
 
@@ -374,10 +318,10 @@ namespace VGR_WebAPI
 
             Database database = new Database();
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
             database.filers.Add(filer);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
             database.SaveChanges();
-
-
         }
 
         public string get_requests()
@@ -387,7 +331,7 @@ namespace VGR_WebAPI
             {
                 Database database = new Database();
 
-                System.IO.File.AppendAllText("D:\\Check.txt", "Test2");
+                
                 var request = from request_ in database.bestallning_Av_Data
                               from beslut_ in database.beslut
                               from status_ in database.status
@@ -418,48 +362,41 @@ namespace VGR_WebAPI
         public string get_request_id(int id)
         {
 
-           
-            
             Database db = new Database();
 
             var beställningData = db.bestallning_Av_Data;
             var beslut = db.beslut;
             var status = db.status;
 
-            var resultBeställning = beställningData.FirstOrDefault(x => x.ID == id);
+
+            
+#pragma warning disable CS8604 // Possible null reference argument.
+            var resultBestallning = beställningData.FirstOrDefault(x => x.ID == id);
+#pragma warning restore CS8604 // Possible null reference argument.
+   
+#pragma warning disable CS8604 // Possible null reference argument.
             var resultBeslut = beslut.FirstOrDefault(x => x.Bestallare_id == id);
+#pragma warning restore CS8604 // Possible null reference argument.
+            
+#pragma warning disable CS8604 // Possible null reference argument.
             var resultStatus = status.FirstOrDefault(x=>x.Bestallare_id == id);
+#pragma warning restore CS8604 // Possible null reference argument.
 
-            resultBeställning.Beslut = resultBeslut;
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            resultBestallning.Beslut = resultBeslut;
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
-            resultBeställning.Status = resultStatus;
-
-
-
-
-
-           //var request = from bestallning_av_data in db.bestallning_Av_Data
-           //               from beslut in db.beslut    
-           //               //join beslut in db.beslut
-           //                   //on bestallning_av_data.ID equals beslut.Bestallare_id
-           //               where bestallning_av_data.ID == id
-
-           //               select bestallning_av_data;
-           //               //{
-           //               //    //bestallning_av_data,
-                              
-           //               //};
-
-                           
+            resultBestallning.Status = resultStatus;
 
 
-            return JsonSerializer.Serialize(resultBeställning).ToString();
+            return JsonSerializer.Serialize(resultBestallning).ToString();
         }
 
         public string get_filename(int id)
         {
             Database db = new Database();
 
+#pragma warning disable CS8604 // Possible null reference argument.
             var request = (from files in db.filers
                            join request_ in db.bestallning_Av_Data on files.User_ID equals request_.ID
                            where request_.ID == id
@@ -470,6 +407,7 @@ namespace VGR_WebAPI
                                files.FileName,
                                files.User_ID
                            });
+#pragma warning restore CS8604 // Possible null reference argument.
 
 
             return JsonSerializer.Serialize(request).ToString();
@@ -479,6 +417,7 @@ namespace VGR_WebAPI
         {
             Database db = new Database();
 
+#pragma warning disable CS8604 // Possible null reference argument.
             var request = (from datauttag in db.datauttag
                            join request_ in db.bestallning_Av_Data on datauttag.User_ID equals request_.ID
                            where request_.ID == id
@@ -488,6 +427,7 @@ namespace VGR_WebAPI
                                datauttag.data
                                
                            });
+#pragma warning restore CS8604 // Possible null reference argument.
 
 
             return JsonSerializer.Serialize(request).ToString();
@@ -602,7 +542,9 @@ namespace VGR_WebAPI
             if (request != null)
             {
                 request.User_ID = user_id;
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                 string filenamewithExtension = Path.GetExtension(request.FileName);
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
                 request.FileName = newFilename + filenamewithExtension;
                 db.SaveChanges();
             }
