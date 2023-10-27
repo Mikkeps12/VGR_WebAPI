@@ -5,6 +5,7 @@ using System.Data.Entity;
 using System.Data.Entity.Migrations;
 using System.Configuration;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Reflection.Metadata;
 
 namespace VGR_WebAPI
 {
@@ -200,9 +201,10 @@ namespace VGR_WebAPI
     {
         [Key]
         public long ID { get; set; }
-        public string? DiarieStatus { get; set; }
+        public string? Diarienummer { get; set; }
 
         public long Bestallare_id { get; set; }
+        public DateTime Datum { get; set; }
     }
 
     public class Beslut
@@ -258,6 +260,7 @@ namespace VGR_WebAPI
     {
 
         public long ID { get; set; }
+        public string? Sokande { get; set; }
         //public long Bestallar_id { get; set; }
         //public long Register_id { get; set; }
         //public DateTime Insertdatetime { get; set; }

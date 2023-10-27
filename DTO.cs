@@ -4,18 +4,30 @@ using System.Text;
 using System.Data.Entity.ModelConfiguration.Configuration;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.AspNetCore.Mvc;
+using QuestPDF.Drawing;
+using QuestPDF.Elements.Table;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using QuestPDF.Previewer;
+using static QuestPDF.Helpers.Colors;
+using System.Text.Json.Serialization;
+using System.Text.Json.Nodes;
+using System.Drawing;
+using System.Data.Common;
+using Microsoft.Win32;
 
 namespace VGR_WebAPI
 {
     public class DTO : IDTO
     {
-        
+
         public List_of_Data? list = new List_of_Data();
-        
+
         public List<string> list_of_names = new List<string>();
         public DTO()
         {
-            
+
         }
 
         public void insert(List_of_Data data)
@@ -25,7 +37,8 @@ namespace VGR_WebAPI
             insert_project(data);
             insert_files(data);
             insert_datacollection(data);
-            
+            insert_compilation_of_the_application(data);
+
             //get_mailadress(data);
 
         }
@@ -74,7 +87,7 @@ namespace VGR_WebAPI
         private void insert_status(List_of_Data data)
         {
             Database database = new Database();
-            
+
             Status status = new Status();
 
             status.Bestallare_id = data.ID;
@@ -82,7 +95,7 @@ namespace VGR_WebAPI
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             database.status.Add(status);
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-            database.SaveChanges();   
+            database.SaveChanges();
         }
 
         private void insert_project(List_of_Data data)
@@ -115,13 +128,13 @@ namespace VGR_WebAPI
         private void insert_datacollection(List_of_Data data)
         {
 #pragma warning disable CS8604 // Possible null reference argument.
-            foreach(var d in data.Array.ToList())
+            foreach (var d in data.Array.ToList())
             {
-                Datauttag datauttag =new Datauttag();
-                Database database= new Database();
-                
-                string json =JsonSerializer.Serialize(d);
-                datauttag.data = json;
+                Datauttag datauttag = new Datauttag();
+                Database database = new Database();
+
+                //string json = JsonSerializer.Serialize(d);
+                datauttag.data = d;
                 datauttag.User_ID = data.ID;
                 database.datauttag.Add(datauttag);
                 database.SaveChanges();
@@ -134,7 +147,7 @@ namespace VGR_WebAPI
         {
             list_of_names = get_file_names();
 
-            
+
             //string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", data.PUB_Avtal[0].FileName);
             if (data.PUB_Avtal != null)
             {
@@ -168,6 +181,7 @@ namespace VGR_WebAPI
 
 
                 string filename = list_of_names[12] + filenameWithExtension;
+                filename = filename.Replace("[ange EPM-diarie nr]", "[" + data.Diarienummer + "]");
                 long Id = data.ID;
 
                 get_file(stream, filename, Id);
@@ -180,9 +194,9 @@ namespace VGR_WebAPI
                 MemoryStream stream = new MemoryStream();
                 data.Beslut_Fil.CopyTo(stream);
                 string filenameWithExtension = Path.GetExtension(data.Beslut_Fil.FileName);
-
-
+                
                 string filename = list_of_names[18] + filenameWithExtension;
+                filename = filename.Replace("[ange EPM-diarie nr]", "[" +data.Diarienummer+"]");
                 long Id = data.ID;
 
                 get_file(stream, filename, Id);
@@ -217,6 +231,7 @@ namespace VGR_WebAPI
 
 
                 string filename = list_of_names[13] + filenameWithExtension;
+                filename = filename.Replace("[ange EPM-diarie nr]", "[" + data.Diarienummer + "]");
                 long Id = data.ID;
 
                 get_file(stream, filename, Id);
@@ -232,6 +247,7 @@ namespace VGR_WebAPI
 
 
                 string filename = list_of_names[19] + filenameWithExtension;
+                filename = filename.Replace("[ange EPM-diarie nr]", "[" + data.Diarienummer + "]");
                 long Id = data.ID;
 
                 get_file(stream, filename, Id);
@@ -243,7 +259,8 @@ namespace VGR_WebAPI
             {
                 MemoryStream stream = new MemoryStream();
                 data.Projektbeskrivning_fil.CopyTo(stream);
-                string filename = data.Projektbeskrivning_fil.FileName;
+                string filenameWithExtension = Path.GetExtension(data.Projektbeskrivning_fil.FileName);
+                string filename = "Projektbeskrivning" + filenameWithExtension;
                 long Id = data.ID;
 
                 get_file(stream, filename, Id);
@@ -252,24 +269,25 @@ namespace VGR_WebAPI
             }
 
             if (data.Avtal_Industri != null)
-                {
-                    MemoryStream stream = new MemoryStream();
-                    data.Avtal_Industri.CopyTo(stream);
-                    string filename= data.Avtal_Industri.FileName;
-                    long Id = data.ID;
-                    
-                    get_file(stream, filename, Id);
-                    stream.Close();
-                    stream.Flush();
-                }
+            {
+                MemoryStream stream = new MemoryStream();
+                data.Avtal_Industri.CopyTo(stream);
+                string filename = data.Avtal_Industri.FileName;
+                long Id = data.ID;
 
-            if(data.Variabellista!=null)
+                get_file(stream, filename, Id);
+                stream.Close();
+                stream.Flush();
+            }
+
+            if (data.Variabellista != null)
             {
                 foreach (var v in data.Variabellista)
                 {
                     MemoryStream stream = new MemoryStream();
                     v.CopyTo(stream);
-                    string filename = v.FileName;
+                    string filenameWithExtension = Path.GetExtension(v.FileName);
+                    string filename = "Variabellista" + filenameWithExtension;
                     long Id = data.ID;
 
                     get_file(stream, filename, Id);
@@ -278,6 +296,781 @@ namespace VGR_WebAPI
                 }
             }
         }
+
+        private void insert_compilation_of_the_application(List_of_Data data) //Generate to pdf
+        {
+            foreach (var v in data.Array)
+            {
+                string json = v.ToString();
+                dynamic g = JsonSerializer.Deserialize<Arra>(v.ToString());
+            }
+
+            var register = JsonSerializer.Deserialize<Arra>(data.Array[0]);
+
+            QuestPDF.Settings.License = LicenseType.Community;
+            string reg = register.Register;
+            MemoryStream stream = new MemoryStream();
+
+            Document.Create(document =>
+            {
+                  document.Page(page =>
+                  {
+                      page.Margin(25, Unit.Millimetre);
+
+                      page.Content().
+                      Background(Colors.White);
+
+                      page.Content().
+                      Column(column =>
+                      {
+                          if (data.Sokande == "Forskare")
+                              insert_forskare(data, column, register);
+
+                          if (data.Sokande == "Verksamhet")
+                              insert_verksamhet(data, column, register);
+
+                          if (data.Sokande == "Ovriga")
+                              insert_ovriga(data, column, register);
+
+                          column.Item().Text("Datauttag").
+                          FontFamily("Arial").
+                          FontColor(Colors.Black).
+                          FontSize(16).
+                          SemiBold();
+                          column.Item().Height(12);
+                          column.Item().Text("Urval").
+                                  FontFamily("Arial").
+                                  FontColor(Colors.Black).
+                                  FontSize(12).
+                                  SemiBold();
+                          column.Item().Text("Datum från" + "                    " + "Datum till").
+                          FontFamily("Times New Roman").
+                         FontColor(Colors.Black).
+                         FontSize(12).
+                         SemiBold();
+                          column.Item().Text(register.FromDate.ToString("yyyy-MM-dd") + "                     " + register.ToDate.ToString("yyyy-MM-dd")).
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12);
+
+                          column.Item().Text("Datumintervall").
+                          FontFamily("Times New Roman").
+                         FontColor(Colors.Black).
+                         FontSize(12).
+                         SemiBold();
+                          column.Item().Text(register.DateInterval != null ? register.DateInterval : " ").
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12);
+                          column.Item().Text("Kön").
+                          FontFamily("Times New Roman").
+                         FontColor(Colors.Black).
+                         FontSize(12).
+                         SemiBold();
+                          column.Item().Text(register.Gender != null ? register.Gender : " ").
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12);
+                          column.Item().Text("Ålder från" + "                    " + "Ålder till").
+                          FontFamily("Times New Roman").
+                         FontColor(Colors.Black).
+                         FontSize(12).
+                         SemiBold();
+                          column.Item().Text(register.AgeFrom + "                                  " + register.AgeTo).
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12);
+
+                          column.Item().Text("Åldersintervall").
+                          FontFamily("Times New Roman").
+                         FontColor(Colors.Black).
+                         FontSize(12).
+                         SemiBold();
+                          column.Item().Text(register.AgeInterval != null ? register.AgeInterval : " ").
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12);
+                          column.Item().Text("Kompletterande beskrivning av urval").
+                                 FontFamily("Times New Roman").
+                                FontColor(Colors.Black).
+                                FontSize(12).
+                                SemiBold();
+                          column.Item().Text(register.Additional != null ? register.Additional : " ").
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12);
+
+                          column.Item().Text("I vilket filformat önskar ni att data levereras?").
+                                  FontFamily("Times New Roman").
+                                 FontColor(Colors.Black).
+                                 FontSize(12).
+                                 SemiBold();
+                          column.Item().Text(register.FileFormat != null ? register.FileFormat : " ").
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12);
+
+                          if (data.Sokande == "Forskare")
+                          {
+                              column.Item().Text("Ska data från aktuellt register samköras med inkommande fil från beställaren?").
+                                      FontFamily("Times New Roman").
+                                     FontColor(Colors.Black).
+                                     FontSize(12).
+                                     SemiBold();
+                              column.Item().Text(register.SyncRegistersWithFile != null ? register.SyncRegistersWithFile : " ").
+                              FontFamily("Times New Roman").
+                              FontColor(Colors.Black).
+                              FontSize(12);
+
+                              column.Item().Text("Ska data från aktuellt register samköras med andra datakällor?").
+                                      FontFamily("Times New Roman").
+                                     FontColor(Colors.Black).
+                                     FontSize(12).
+                                     SemiBold();
+                              column.Item().Text(register.SyncRegisterFromOtherSources != null ? register.SyncRegisterFromOtherSources : " ").
+                              FontFamily("Times New Roman").
+                              FontColor(Colors.Black).
+                              FontSize(12);
+                              if (register.SyncRegisterFromOtherSources == "Ja")
+                              {
+                                  column.Item().Text("Datakälla").
+                                          FontFamily("Times New Roman").
+                                         FontColor(Colors.Black).
+                                         FontSize(12).
+                                         SemiBold();
+                                  column.Item().Text(register.NameDatasources != null ? register.NameDatasources : " ").
+                                  FontFamily("Times New Roman").
+                                  FontColor(Colors.Black).
+                                  FontSize(12);
+                                  column.Item().Text("Beskriv den tänkta processen kring samkörning").
+                                  FontFamily("Times New Roman").
+                                 FontColor(Colors.Black).
+                                 FontSize(12).
+                                 SemiBold();
+
+                                  column.Item().Text(register.ProcessOfSync != null ? register.ProcessOfSync : " ").
+                                  FontFamily("Times New Roman").
+                                  FontColor(Colors.Black).
+                                  FontSize(12);
+                                  column.Item().Text("Vilka variabler ska samkörningen göras på?").
+                                  FontFamily("Times New Roman").
+                                 FontColor(Colors.Black).
+                                 FontSize(12).
+                                 SemiBold();
+                                  column.Item().Text(register.WhichVariables != null ? register.WhichVariables : " ").
+                                  FontFamily("Times New Roman").
+                                  FontColor(Colors.Black).
+                                  FontSize(12);
+                                  column.Item()
+                              .Text("Beskriv variabler")
+                              .FontFamily("Times New Roman")
+                              .FontColor(Colors.Black)
+                              .FontSize(12)
+                              .SemiBold();
+
+                                  column.Item().Text(register.DescriptionOfVariables != null ? register.DescriptionOfVariables : " ").
+                                  FontFamily("Times New Roman").
+                                  FontColor(Colors.Black).
+                                  FontSize(12);
+                              }
+                          }
+                      });
+
+                      page.Footer().AlignCenter().
+                      Text(x =>
+                      {
+                          x.Span("Sida ");
+                          x.CurrentPageNumber();
+                      });
+                  });
+              }).GeneratePdf(stream);
+
+            long Id = data.ID;
+            if (data.Sokande == "Forskare")
+                get_file(stream, "Ansökan om registeruppgifter ur " + register.Goverment + " [" + register.Register + "] för forskningsändamål.pdf", Id);
+            if (data.Sokande == "Verksamhet")
+                get_file(stream, "Ansökan om registeruppgifter ur " + register.Goverment + " [" + register.Register + "] från verksamhetsföreträdare inom vården.pdf", Id);
+            if (data.Sokande == "Ovriga")
+                get_file(stream, "Ansökan om registeruppgifter ur " + register.Goverment + " [" + register.Register + "] .pdf", Id);
+        }
+
+        private void insert_ovriga(List_of_Data data, ColumnDescriptor column, Arra register)
+        {
+            column.Item().
+            Text("Ansökan om registeruppgifter ur "+register.Goverment).
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(16).
+            SemiBold();
+
+            column.Item().Height(12);
+
+            column.Item().
+            Text("Vilket register avser uttaget?").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+
+            column.Item().
+            Width(200).
+            Text(register.Register != null ? register.Register : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Height(12);
+            column.Item().
+            Text("Uppgifter kring beställare och debitering").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(16).
+            SemiBold();
+            column.Item().Height(8);
+            column.Item().Text("Beställare").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+
+            column.Item().Text("Namn:").
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12).
+                          SemiBold();
+            column.Item().Text(data.Bestallare_Namn != null ? data.Bestallare_Namn : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Titel eller roll:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Titel_och_Roll != null ? data.Bestallare_Titel_och_Roll : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Organisation:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Organisation != null ? data.Bestallare_Organisation : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Adress:").
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12).
+                          SemiBold();
+            column.Item().Text(data.Bestallare_Adress != null ? data.Bestallare_Adress : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Mobiltelefon:").
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12).
+                          SemiBold();
+            column.Item().Text(data.Bestallare_Mobiltelefon != null ? data.Bestallare_Mobiltelefon : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("E-postadress:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Epostadress != null ? data.Bestallare_Epostadress : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Height(12);
+
+
+        }
+
+        private void insert_verksamhet(List_of_Data data, ColumnDescriptor column, Arra register)
+        {
+            column.Item().
+            Text("Ansökan om registeruppgifter ur "+register.Goverment+" från verksamhetsföreträdare inom vården").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(16).
+            SemiBold();
+
+            column.Item().Height(12);
+
+            column.Item().
+            Text("Vilket register avser uttaget?").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+
+            column.Item().
+            Width(200).
+            Text(register.Register != null ? register.Register : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Height(12);
+            column.Item().
+            Text("Uppgifter kring beställare och debitering").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(16).
+            SemiBold();
+            column.Item().Height(8);
+            column.Item().Text("Beställare").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+
+            column.Item().Text("Namn:").
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12).
+                          SemiBold();
+            column.Item().Text(data.Bestallare_Namn != null ? data.Bestallare_Namn : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Titel eller roll:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Titel_och_Roll != null ? data.Bestallare_Titel_och_Roll : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Organisation:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Organisation != null ? data.Bestallare_Organisation : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+            column.Item().Height(12);
+            column.Item().Text("Faktureringsadress").
+                              FontFamily("Arial").
+                              FontColor(Colors.Black).
+                              FontSize(12).
+                              SemiBold();
+            column.Item().Text("Faktueringsadress:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Fak_Adress != null ? data.Bestallare_Fak_Adress : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Postnummer:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Postnummer != null ? data.Bestallare_Postnummer : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Postort:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Postort != null ? data.Bestallare_Postort : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Organisationsnummer:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Fak_Org != null ? data.Bestallare_Fak_Org : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Referens:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Fak_Referens != null ? data.Bestallare_Fak_Referens : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+            column.Item().Height(12);
+            //column.Item().Height(92);
+        }
+
+        private void insert_forskare(List_of_Data data, ColumnDescriptor column, Arra register)
+        {
+            column.Item().
+            Text("Ansökan om registeruppgifter ur "+register.Goverment+" för forskningsändamål").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(16).
+            SemiBold();
+
+            column.Item().Height(12);
+
+            column.Item().
+            Text("Vilket register avser uttaget?").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+
+            column.Item().
+            Width(200).
+            Text(register.Register!=null ?register.Register: " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Height(12);
+            column.Item().
+            Text("Uppgifter kring forskningsgruppen och debitering").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(16).
+            SemiBold();
+            column.Item().Height(8);
+            column.Item().Text("Forskningshuvudman").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+
+            column.Item().Text(data.Bestallare_Organisation!=null ? data.Bestallare_Organisation : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Height(8);
+            column.Item().Text("Behörig företrädare för forskningshuvudman").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+
+            column.Item().Text("Namn:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Namn != null ? data.Bestallare_Namn : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Titel eller roll:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Titel_och_Roll != null ? data.Bestallare_Titel_och_Roll : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Organisation:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Organisation != null ? data.Bestallare_Organisation : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+
+            column.Item().Text("Mobiltelefon:" + "                    " + "E-postadress:").
+                          FontFamily("Times New Roman").
+                          FontColor(Colors.Black).
+                          FontSize(12).
+                          SemiBold();
+
+            int length = 0;
+            if (data.Bestallare_Mobiltelefon != null)
+            {
+                length = data.Bestallare_Mobiltelefon.Length;
+            }
+            
+            int diff = 32 - length;
+            string space = " ";
+            for(int i = 0; i < diff;i++)
+            {
+                space += " ";
+            }
+            column.Item().Text(data.Bestallare_Mobiltelefon + space + data.Bestallare_Epostadress).
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            //column.Item().Text("E-postadress:").
+            //FontFamily("Times New Roman").
+            //FontColor(Colors.Black).
+            //FontSize(12).
+            //SemiBold();
+            //column.Item().Text(data.Bestallare_Epostadress).
+            //FontFamily("Times New Roman").
+            //FontColor(Colors.Black).
+            //FontSize(12);
+
+            column.Item().Height(12);
+
+            column.Item().Text("Huvudansvarig forskare").
+                              FontFamily("Arial").
+                              FontColor(Colors.Black).
+                              FontSize(12).
+                              SemiBold();
+            column.Item().Text("Namn:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Huvudans_Namn != null ? data.Huvudans_Namn : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Organisation:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Huvudans_Organisation != null ? data.Huvudans_Organisation : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Mobiltelefon:" + "                    " + "E-postadress:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+
+            length = 0;
+            if (data.Huvudans_Mobiltelefon != null)
+            {
+                length = data.Huvudans_Mobiltelefon.Length;
+            }
+
+            diff = 32 - length;
+            space = " ";
+            for (int i = 0; i < diff; i++)
+            {
+                space += " ";
+            }
+
+            column.Item().Text(data.Huvudans_Mobiltelefon + space + data.Huvudans_Epostadress).
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Height(12);
+
+            column.Item().Text("Faktureringsadress").
+                              FontFamily("Arial").
+                              FontColor(Colors.Black).
+                              FontSize(12).
+                              SemiBold();
+            column.Item().Text("Faktueringsadress:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Fak_Adress != null ? data.Bestallare_Fak_Adress : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Postnummer:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Postnummer != null ? data.Bestallare_Postnummer : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Postort:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Postort != null ? data.Bestallare_Postort : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Organisationsnummer:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Fak_Org != null ? data.Bestallare_Fak_Org : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Referens:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Bestallare_Fak_Referens != null ? data.Bestallare_Fak_Referens : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            
+
+            //column.Item().Text("E-postadress:").
+            //FontFamily("Times New Roman").
+            //FontColor(Colors.Black).
+            //FontSize(12).
+            //SemiBold();
+            //column.Item().Text(data.Huvudans_Epostadress).
+            //FontFamily("Times New Roman").
+            //FontColor(Colors.Black).
+            //FontSize(12);
+
+            column.Item().Height(56);
+
+            //page.Content().PageBreak();
+            
+
+
+            //column.Item().Text(data.Bestallare_Adress);
+            column.Item().Text("Gäller projektet läkemedelstudier?").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Lakemedelstudier != null ? data.Lakemedelstudier : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+            column.Item().Height(12);
+            column.Item().Text("Genomförs projektet i samarbete med industrin?").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Samarbete_Med_Industrin != null ? data.Samarbete_Med_Industrin : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Height(12);
+
+            column.Item().Text("Uppgifter kring samkörning av data").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(16).
+            SemiBold();
+            column.Item().Height(12);
+            column.Item().Text("Ska datauttaget samköras med data från andra register?").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(register.SyncRegisterFromOtherSources != null ? register.SyncRegisterFromOtherSources : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+            column.Item().Height(12);
+            column.Item().Text("Ska datauttaget samköras med data från annan myndighet?").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text("Ja?");
+
+            column.Item().Height(12);
+            column.Item().Text("Uppgifter om forskningsprojektet").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(16).
+            SemiBold();
+            column.Item().Height(12);
+            column.Item().Text("Projektets titel och kort beskrivning").
+            FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text("Titel:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Projekttitel != null ? data.Projekttitel : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+
+            column.Item().Text("Sammanfattande projektbeskrivning:").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+            column.Item().Text(data.Projektbeskrivning != null ? data.Projektbeskrivning : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+            column.Item().Height(12);
+            column.Item().Text("Beslut från etikprövningsmyndigheten").FontFamily("Arial").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+
+            column.Item().Text("Diarenummer för etikprövningsmyndighetens beslut:").
+           FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12).
+            SemiBold();
+
+            column.Item().Text(data.Diarienummer != null ? data.Diarienummer : " ").
+            FontFamily("Times New Roman").
+            FontColor(Colors.Black).
+            FontSize(12);
+            column.Item().Height(12);
+
+
+
+        }
+
+
+
+
+
+
+
 
         private void get_mailadress(List_of_Data data) => Mail.mail(data);
 
